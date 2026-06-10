@@ -80,6 +80,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
   } else if (request.action === 'getPickedColor') {
     sendResponse({ success: true, color: lastPickedColor || null });
+  } else if (request.action === 'getPickerState') {
+    sendResponse({ success: true, active: colorPickerActive });
   }
   return true; // Keep channel open for async
 });
@@ -516,7 +518,7 @@ async function onRegionMouseUp(e) {
   try {
     const resp = await chrome.runtime.sendMessage({ action: 'captureRegion', region, dims, format: regionFormat });
     if (resp && resp.success && resp.dataUrl) {
-      showRegionResult(resp.dataUrl, r.width, r.height);
+      showRegionResult(resp.dataUrl, r.width, r.height, regionFormat);
     } else {
       showRegionToast('Capture failed: ' + (resp ? resp.error : 'No response'), 'error');
     }
@@ -525,7 +527,8 @@ async function onRegionMouseUp(e) {
   }
 }
 
-function showRegionResult(dataUrl, w, h) {
+function showRegionResult(dataUrl, w, h, format) {
+  const ext = format || 'png';
   const toolbar = document.createElement('div');
   toolbar.id = 'dsa-region-result';
   toolbar.style.cssText = [
@@ -558,7 +561,7 @@ function showRegionResult(dataUrl, w, h) {
     e.stopPropagation();
     const a = document.createElement('a');
     a.href = dataUrl;
-    a.download = 'region-' + w + 'x' + h + '.png';
+    a.download = 'region-' + w + 'x' + h + '.' + ext;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -851,7 +854,8 @@ function onPickerClick(e) {
 
   e.preventDefault();
   e.stopPropagation();
-  // Keep picker active so user can keep picking colors
+  // Auto-disable picker after picking a color so cursor is released
+  disableColorPicker();
 }
 
 function onPickerKeyDown(e) {

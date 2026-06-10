@@ -22,17 +22,41 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (request.action === 'captureViewport') {
-    chrome.tabs.captureVisibleTab(null, { format: 'png' })
+    captureVisibleTabAsync(null, { format: 'png' })
       .then(dataUrl => sendResponse({ success: true, dataUrl }))
       .catch(err => sendResponse({ success: false, error: err.message }));
     return true;
   }
 });
 
+function captureVisibleTabAsync(windowId, options) {
+  return new Promise((resolve, reject) => {
+    chrome.tabs.captureVisibleTab(windowId, options, (dataUrl) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+      } else {
+        resolve(dataUrl);
+      }
+    });
+  });
+}
+
+function sendMessageToTabAsync(tabId, message) {
+  return new Promise((resolve, reject) => {
+    chrome.tabs.sendMessage(tabId, message, (response) => {
+      if (chrome.runtime.lastError) {
+        reject(new Error(chrome.runtime.lastError.message));
+      } else {
+        resolve(response);
+      }
+    });
+  });
+}
+
 async function captureSegment(x, y, tabId) {
-  await chrome.tabs.sendMessage(tabId, { action: 'scrollTo', x, y }).catch(() => {});
+  await sendMessageToTabAsync(tabId, { action: 'scrollTo', x, y }).catch(() => {});
   await new Promise(r => setTimeout(r, 300));
-  return chrome.tabs.captureVisibleTab(null, { format: 'png' });
+  return captureVisibleTabAsync(null, { format: 'png' });
 }
 
 async function captureAndSendRegion(region, dims, tabId, format) {
@@ -41,7 +65,7 @@ async function captureAndSendRegion(region, dims, tabId, format) {
     (region.viewportY + region.height) <= dims.viewportHeight;
 
   if (fitsViewport) {
-    const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png' });
+    const dataUrl = await captureVisibleTabAsync(null, { format: 'png' });
     return cropImage(dataUrl, region.viewportX, region.viewportY, region.width, region.height, dims.devicePixelRatio || 1, format);
   }
 

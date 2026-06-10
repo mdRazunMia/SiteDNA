@@ -324,12 +324,20 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Poll for picked colors when picker is active
+  // Poll for picked colors and picker state
   setInterval(function() {
     if (!pickerActive) return;
     chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
       if (!tabs || !tabs[0]) return;
       var tab = tabs[0];
+      // Check if picker is still active on the page
+      sendToTab(tab, { action: 'getPickerState' }, function(stateResp) {
+        if (stateResp && !stateResp.active) {
+          // Picker was auto-disabled after picking a color
+          updatePickerUI(false, null);
+          return;
+        }
+      });
       sendToTab(tab, { action: 'getPickedColor' }, function(response) {
         if (!response || !response.color) return;
         var c = response.color;
@@ -730,97 +738,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, mimeType, 0.92);
       };
       img.onerror = function() { showStatus('Failed to process image.', 'error'); };
-      img.src = currentScreenshotDataUrl;
-    });
-  }
-
-  if (downloadScreenshotBtn) {
-    downloadScreenshotBtn.addEventListener('click', function() {
-      if (!currentScreenshotDataUrl) {
-        showStatus('No screenshot to download.', 'error');
-        return;
-      }
-      var format = screenshotFormat ? screenshotFormat.value : 'png';
-      var mimeType = 'image/png';
-      if (format === 'jpg') mimeType = 'image/jpeg';
-      else if (format === 'webp') mimeType = 'image/webp';
-
-      if (format === 'png') {
-        var a = document.createElement('a');
-        a.href = currentScreenshotDataUrl;
-        a.download = 'screenshot.png';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        showStatus('Screenshot downloaded as PNG!', 'success');
-        return;
-      }
-
-      var img = new Image();
-      img.onload = function() {
-        var canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        var ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        canvas.toBlob(function(blob) {
-          if (!blob) {
-            showStatus('Failed to convert screenshot format.', 'error');
-            return;
-          }
-          var url = URL.createObjectURL(blob);
-          var a = document.createElement('a');
-          a.href = url;
-          a.download = 'screenshot.' + format;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-          showStatus('Screenshot downloaded as ' + format.toUpperCase() + '!', 'success');
-        }, mimeType, 0.92);
-      };
-      img.onerror = function() {
-        showStatus('Failed to process screenshot.', 'error');
-      };
-      img.src = currentScreenshotDataUrl;
-    });
-  }
-
-  if (copyScreenshotBtn) {
-    copyScreenshotBtn.addEventListener('click', function() {
-      if (!currentScreenshotDataUrl) {
-        showStatus('No screenshot to copy.', 'error');
-        return;
-      }
-      var format = screenshotFormat ? screenshotFormat.value : 'png';
-      var mimeType = 'image/png';
-      if (format === 'jpg') mimeType = 'image/jpeg';
-      else if (format === 'webp') mimeType = 'image/webp';
-
-      var img = new Image();
-      img.onload = function() {
-        var canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        var ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        canvas.toBlob(function(blob) {
-          if (!blob) {
-            showStatus('Failed to convert for clipboard.', 'error');
-            return;
-          }
-          navigator.clipboard.write([
-            new ClipboardItem({ [blob.type]: blob })
-          ]).then(function() {
-            showStatus('Screenshot copied to clipboard!', 'success');
-          }).catch(function() {
-            showStatus('Could not copy to clipboard.', 'error');
-          });
-        }, mimeType, 0.92);
-      };
-      img.onerror = function() {
-        showStatus('Failed to process screenshot.', 'error');
-      };
       img.src = currentScreenshotDataUrl;
     });
   }
