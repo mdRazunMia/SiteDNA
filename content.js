@@ -628,6 +628,40 @@ function showRegionToast(msg, type) {
   setTimeout(function() { toast.remove(); }, 3000);
 }
 
+function showPickerToast(msg) {
+  if (!document.getElementById('dsa-region-style')) {
+    var style = document.createElement('style');
+    style.id = 'dsa-region-style';
+    style.textContent = '@keyframes dsaFadeIn { from { opacity:0; transform:translateX(-50%) translateY(16px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }';
+    document.head.appendChild(style);
+  }
+  const existing = document.getElementById('dsa-cp-toast');
+  if (existing) existing.remove();
+
+  const toast = document.createElement('div');
+  toast.id = 'dsa-cp-toast';
+  toast.textContent = msg;
+  toast.style.cssText = [
+    'position:fixed',
+    'top:24px',
+    'left:50%',
+    'transform:translateX(-50%)',
+    'z-index:2147483647',
+    'padding:10px 20px',
+    'background:#0f172a',
+    'color:#f8fafc',
+    'border:1px solid #334155',
+    'border-radius:10px',
+    'font-family:system-ui,sans-serif',
+    'font-size:14px',
+    'font-weight:600',
+    'box-shadow:0 8px 32px rgba(0,0,0,0.3)',
+    'animation:dsaFadeIn 0.2s ease-out'
+  ].join(';');
+  document.body.appendChild(toast);
+  setTimeout(function() { toast.remove(); }, 2000);
+}
+
 function onRegionKeyDown(e) {
   if (!regionSelectorActive) return;
   if (e.key === 'Escape') {
@@ -787,10 +821,27 @@ function onPickerMouseMove(e) {
 
 function onPickerClick(e) {
   if (!colorPickerActive) return;
-  // Ignore clicks on the tooltip
+  // Ignore clicks on the tooltip and its children
+  const tooltip = document.getElementById('dsa-cp-tooltip');
+  if (tooltip && tooltip.contains(e.target)) return;
   if (e.target && e.target.closest && e.target.closest('#dsa-cp-tooltip')) return;
   const pixel = samplePixel(e.clientX, e.clientY);
   if (!pixel) return;
+
+  // Copy color to clipboard using execCommand (most reliable in content scripts)
+  var textarea = document.createElement('textarea');
+  textarea.value = pixel.hex;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  textarea.style.zIndex = '-1';
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  try {
+    document.execCommand('copy');
+  } catch (err) {}
+  document.body.removeChild(textarea);
+  showPickerToast('Copied ' + pixel.hex + '!');
 
   lastPickedColor = { hex: pixel.hex, rgb: 'rgb(' + pixel.r + ', ' + pixel.g + ', ' + pixel.b + ')', role: 'Pixel' };
   if (!colorHistory.find(function(c) { return c.hex === pixel.hex; })) {
@@ -800,7 +851,7 @@ function onPickerClick(e) {
 
   e.preventDefault();
   e.stopPropagation();
-  disableColorPicker();
+  // Keep picker active so user can keep picking colors
 }
 
 function onPickerKeyDown(e) {

@@ -36,9 +36,9 @@ async function captureSegment(x, y, tabId) {
 }
 
 async function captureAndSendRegion(region, dims, tabId, format) {
-  const fitsViewport = region.x >= 0 && region.y >= 0 &&
-    (region.x + region.width) <= dims.viewportWidth &&
-    (region.y + region.height) <= dims.viewportHeight;
+  const fitsViewport = region.viewportX >= 0 && region.viewportY >= 0 &&
+    (region.viewportX + region.width) <= dims.viewportWidth &&
+    (region.viewportY + region.height) <= dims.viewportHeight;
 
   if (fitsViewport) {
     const dataUrl = await chrome.tabs.captureVisibleTab(null, { format: 'png' });
