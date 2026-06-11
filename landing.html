@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Design System & Image Extractor</title>
+  <style>
+    :root {
+      --ink: #111827;
+      --muted: #5b6472;
+      --line: #d9dee8;
+      --paper: #fbfcfe;
+      --panel: #ffffff;
+      --lime: #b8ef4a;
+      --blue: #2e6af0;
+      --violet: #7357f2;
+      --cyan: #36c3d6;
+      --coral: #ff674f;
+      --amber: #f0b72f;
+      --green: #26a65b;
+      --shadow: 0 24px 80px rgba(17, 24, 39, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button,
+    .button {
+      font: inherit;
+    }
+
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      border-bottom: 1px solid rgba(217, 222, 232, 0.72);
+      background: rgba(251, 252, 254, 0.86);
+      backdrop-filter: blur(16px);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: min(1180px, calc(100% - 40px));
+      min-height: 68px;
+      margin: 0 auto;
+      gap: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      font-weight: 800;
+    }
+
+    .brand img {
+      width: 34px;
+      height: 34px;
+      border-radius: 9px;
+      flex: 0 0 auto;
+    }
+
+    .brand span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .nav-links a:hover {
+      color: var(--ink);
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 18px;
+      border: 1px solid var(--ink);
+      border-radius: 8px;
+      background: var(--ink);
+      color: #fff;
+      font-weight: 800;
+      white-space: nowrap;
+      box-shadow: 0 10px 26px rgba(17, 24, 39, 0.18);
+    }
+
+    .button.secondary {
+      background: #fff;
+      color: var(--ink);
+      box-shadow: none;
+    }
+
+    .hero {
+      position: relative;
+      min-height: 92vh;
+      overflow: hidden;
+      background:
+        linear-gradient(125deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.72) 44%, rgba(255, 255, 255, 0.2) 100%),
+        linear-gradient(90deg, rgba(46, 106, 240, 0.18), rgba(184, 239, 74, 0.24)),
+        #edf3f7;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0.35;
+      background-image:
+        linear-gradient(rgba(17, 24, 39, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(17, 24, 39, 0.08) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    .hero-inner {
+      position: relative;
+      display: grid;
+      align-items: center;
+      width: min(1180px, calc(100% - 40px));
+      min-height: 92vh;
+      margin: 0 auto;
+      padding: 112px 0 70px;
+    }
+
+    .hero-copy {
+      max-width: 640px;
+      z-index: 2;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+      color: #324155;
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 34px;
+      height: 6px;
+      border-radius: 99px;
+      background: linear-gradient(90deg, var(--lime), var(--cyan));
+    }
+
+    h1 {
+      max-width: 780px;
+      margin: 0;
+      font-size: clamp(52px, 7vw, 90px);
+      line-height: 0.92;
+      letter-spacing: 0;
+    }
+
+    .hero p {
+      max-width: 620px;
+      margin: 26px 0 0;
+      color: #313b49;
+      font-size: 20px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 34px;
+    }
+
+    .trust-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 28px;
+      color: #465365;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .trust-row span {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid rgba(17, 24, 39, 0.12);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.72);
+    }
+
+    .product-stage {
+      position: absolute;
+      right: max(-150px, calc((100vw - 1180px) / 2 - 180px));
+      bottom: 28px;
+      width: min(640px, 50vw);
+      min-width: 420px;
+      transform: rotate(-3deg);
+      z-index: 1;
+    }
+
+    .browser-frame {
+      border: 1px solid rgba(17, 24, 39, 0.16);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .browser-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 44px;
+      padding: 0 14px;
+      border-bottom: 1px solid var(--line);
+      background: #f5f7fb;
+    }
+
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 999px;
+      background: var(--coral);
+    }
+
+    .dot:nth-child(2) {
+      background: var(--amber);
+    }
+
+    .dot:nth-child(3) {
+      background: var(--green);
+    }
+
+    .browser-url {
+      flex: 1;
+      min-height: 26px;
+      margin-left: 8px;
+      border-radius: 999px;
+      background: #e8edf4;
+    }
+
+    .mock-page {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 286px;
+      gap: 24px;
+      min-height: 470px;
+      padding: 24px;
+      background: linear-gradient(135deg, #ffffff 0%, #f1f5fa 100%);
+    }
+
+    .sample-site {
+      display: grid;
+      grid-template-rows: 34px 120px 1fr;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .sample-nav,
+    .sample-hero,
+    .sample-card,
+    .sample-strip {
+      border: 1px solid #dce3ec;
+      background: #fff;
+    }
+
+    .sample-nav {
+      border-radius: 8px;
+    }
+
+    .sample-hero {
+      border-radius: 10px;
+      background:
+        linear-gradient(90deg, rgba(46, 106, 240, 0.9), rgba(54, 195, 214, 0.85)),
+        #2e6af0;
+    }
+
+    .sample-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .sample-card {
+      min-height: 116px;
+      border-radius: 10px;
+      padding: 14px;
+    }
+
+    .sample-card::before,
+    .sample-card::after,
+    .sample-strip {
+      content: "";
+      display: block;
+      height: 12px;
+      border-radius: 999px;
+      background: #dfe6ef;
+    }
+
+    .sample-card::after {
+      width: 62%;
+      margin-top: 12px;
+      background: #eef2f7;
+    }
+
+    .extension-popover {
+      width: 286px;
+      border: 1px solid #d7dee9;
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: 0 20px 56px rgba(17, 24, 39, 0.18);
+      overflow: hidden;
+    }
+
+    .popover-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px;
+      border-bottom: 1px solid #e6ebf2;
+      font-size: 13px;
+      font-weight: 850;
+    }
+
+    .popover-tabs {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      border-bottom: 1px solid #e6ebf2;
+    }
+
+    .popover-tabs span {
+      min-height: 30px;
+      border-right: 1px solid #edf1f6;
+    }
+
+    .popover-tabs span:first-child {
+      background: var(--ink);
+    }
+
+    .token-panel {
+      padding: 14px;
+    }
+
+    .token-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      color: #111827;
+      font-size: 11px;
+      font-weight: 850;
+      text-transform: uppercase;
+    }
+
+    .swatches {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .swatches span {
+      aspect-ratio: 1;
+      border: 1px solid #dce3ec;
+      border-radius: 8px;
+    }
+
+    .swatches span:nth-child(1) { background: var(--blue); }
+    .swatches span:nth-child(2) { background: var(--cyan); }
+    .swatches span:nth-child(3) { background: var(--lime); }
+    .swatches span:nth-child(4) { background: var(--coral); }
+    .swatches span:nth-child(5) { background: #111827; }
+    .swatches span:nth-child(6) { background: #64748b; }
+    .swatches span:nth-child(7) { background: #f8fafc; }
+    .swatches span:nth-child(8) { background: var(--amber); }
+
+    .metric-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .metric {
+      display: flex;
+      justify-content: space-between;
+      min-height: 32px;
+      padding: 8px 10px;
+      border: 1px solid #edf1f6;
+      border-radius: 8px;
+      background: #f8fafc;
+      color: #425066;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .section {
+      padding: 86px 0;
+    }
+
+    .section-inner {
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 34px;
+    }
+
+    .section h2 {
+      max-width: 720px;
+      margin: 0;
+      font-size: clamp(34px, 5vw, 62px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .section-header p {
+      max-width: 420px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 17px;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .feature {
+      min-height: 230px;
+      padding: 22px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+    }
+
+    .feature-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      margin-bottom: 28px;
+      border-radius: 8px;
+      background: #eff6ff;
+      color: var(--blue);
+      font-size: 22px;
+      font-weight: 900;
+    }
+
+    .feature:nth-child(2) .feature-icon { background: #ecfeff; color: #08798a; }
+    .feature:nth-child(3) .feature-icon { background: #f2fce4; color: #4d7c0f; }
+    .feature:nth-child(4) .feature-icon { background: #fff7ed; color: #c2410c; }
+    .feature:nth-child(5) .feature-icon { background: #f5f3ff; color: var(--violet); }
+    .feature:nth-child(6) .feature-icon { background: #fef2f2; color: #b42318; }
+
+    .feature h3 {
+      margin: 0 0 10px;
+      font-size: 22px;
+      line-height: 1.1;
+    }
+
+    .feature p {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .workflow {
+      background: #111827;
+      color: #fff;
+    }
+
+    .workflow .section-header p {
+      color: #c8d0dc;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.16);
+    }
+
+    .step {
+      min-height: 240px;
+      padding: 24px;
+      background: #182235;
+    }
+
+    .step-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      margin-bottom: 46px;
+      border-radius: 999px;
+      background: var(--lime);
+      color: #111827;
+      font-weight: 900;
+    }
+
+    .step h3 {
+      margin: 0 0 10px;
+      font-size: 22px;
+    }
+
+    .step p {
+      margin: 0;
+      color: #c8d0dc;
+    }
+
+    .install {
+      background: #eef3f7;
+    }
+
+    .install-panel {
+      display: grid;
+      grid-template-columns: 0.85fr 1.15fr;
+      gap: 34px;
+      align-items: center;
+    }
+
+    .install-copy h2 {
+      margin-bottom: 18px;
+    }
+
+    .install-copy p {
+      max-width: 520px;
+      margin: 0 0 28px;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .install-list {
+      display: grid;
+      gap: 12px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .install-list li {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      font-weight: 750;
+    }
+
+    .install-list b {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: var(--ink);
+      color: #fff;
+      flex: 0 0 auto;
+      font-size: 13px;
+    }
+
+    .code-window {
+      border: 1px solid #273448;
+      border-radius: 14px;
+      overflow: hidden;
+      background: #101827;
+      box-shadow: var(--shadow);
+    }
+
+    .code-title {
+      display: flex;
+      align-items: center;
+      min-height: 46px;
+      padding: 0 16px;
+      border-bottom: 1px solid #263247;
+      color: #c8d0dc;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    pre {
+      margin: 0;
+      padding: 22px;
+      overflow-x: auto;
+      color: #e8edf4;
+      font: 14px/1.7 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+
+    .footer {
+      padding: 34px 0;
+      border-top: 1px solid var(--line);
+      background: #fff;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: min(1180px, calc(100% - 40px));
+      margin: 0 auto;
+      gap: 20px;
+    }
+
+    @media (max-width: 980px) {
+      .nav-links a {
+        display: none;
+      }
+
+      .product-stage {
+        position: relative;
+        right: auto;
+        bottom: auto;
+        width: 100%;
+        min-width: 0;
+        margin-top: 46px;
+        transform: none;
+      }
+
+      .hero-inner {
+        display: block;
+      }
+
+      .mock-page {
+        grid-template-columns: 1fr;
+      }
+
+      .extension-popover {
+        width: 100%;
+      }
+
+      .feature-grid,
+      .steps,
+      .install-panel {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .nav-inner,
+      .section-inner,
+      .footer-inner,
+      .hero-inner {
+        width: min(100% - 28px, 1180px);
+      }
+
+      .brand span {
+        max-width: 190px;
+      }
+
+      .nav .button {
+        display: none;
+      }
+
+      .hero {
+        min-height: auto;
+      }
+
+      .hero-inner {
+        min-height: auto;
+        padding-top: 104px;
+      }
+
+      h1 {
+        font-size: 52px;
+      }
+
+      .hero p {
+        font-size: 18px;
+      }
+
+      .section {
+        padding: 64px 0;
+      }
+
+      .section-header,
+      .footer-inner {
+        display: grid;
+      }
+
+      .feature-grid,
+      .steps,
+      .install-panel,
+      .sample-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .feature,
+      .step {
+        min-height: auto;
+      }
+
+      .step-num {
+        margin-bottom: 28px;
+      }
+
+      .mock-page {
+        padding: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav" aria-label="Primary navigation">
+    <div class="nav-inner">
+      <a class="brand" href="#">
+        <img src="icon128.png" alt="Design System & Image Extractor icon">
+        <span>Design System & Image Extractor</span>
+      </a>
+      <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#workflow">Workflow</a>
+        <a href="#install">Install</a>
+        <a class="button" href="#install">Load unpacked</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <section class="hero">
+      <div class="hero-inner">
+        <div class="hero-copy">
+          <div class="eyebrow">Manifest V3 Chrome extension</div>
+          <h1>Design System & Image Extractor</h1>
+          <p>Inspect any website, collect its design tokens, detect the stack behind it, pick exact colors, capture screenshots, and export image assets from one browser popup.</p>
+          <div class="hero-actions">
+            <a class="button" href="#install">Install locally</a>
+            <a class="button secondary" href="#features">See capabilities</a>
+          </div>
+          <div class="trust-row" aria-label="Extension capabilities">
+            <span>No external CDN dependencies</span>
+            <span>Exports Markdown and ZIP</span>
+            <span>Works on any website</span>
+          </div>
+        </div>
+
+        <div class="product-stage" aria-label="Extension interface preview">
+          <div class="browser-frame">
+            <div class="browser-top">
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="dot"></span>
+              <span class="browser-url"></span>
+            </div>
+            <div class="mock-page">
+              <div class="sample-site" aria-hidden="true">
+                <div class="sample-nav"></div>
+                <div class="sample-hero"></div>
+                <div class="sample-grid">
+                  <div class="sample-card"></div>
+                  <div class="sample-card"></div>
+                  <div class="sample-card"></div>
+                  <div class="sample-card"></div>
+                </div>
+              </div>
+              <div class="extension-popover">
+                <div class="popover-head">
+                  <span>Design System Analyzer</span>
+                  <span>Export .md</span>
+                </div>
+                <div class="popover-tabs" aria-hidden="true">
+                  <span></span><span></span><span></span><span></span><span></span>
+                </div>
+                <div class="token-panel">
+                  <div class="token-title">
+                    <span>Color Palette</span>
+                    <span>18 colors</span>
+                  </div>
+                  <div class="swatches" aria-hidden="true">
+                    <span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span>
+                  </div>
+                  <div class="metric-list">
+                    <div class="metric"><span>Typography</span><span>12 styles</span></div>
+                    <div class="metric"><span>Spacing scale</span><span>24 values</span></div>
+                    <div class="metric"><span>Images</span><span>ZIP ready</span></div>
+                    <div class="metric"><span>Inspector</span><span>CSS lock</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="features">
+      <div class="section-inner">
+        <div class="section-header">
+          <h2>One popup for visual audits and asset capture.</h2>
+          <p>The extension focuses on repeatable frontend research tasks that usually require several separate tools.</p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature">
+            <div class="feature-icon">#</div>
+            <h3>Design tokens</h3>
+            <p>Extract colors, font families, typography styles, spacing, shadows, and border radius values from the active page.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon">T</div>
+            <h3>Tech detection</h3>
+            <p>Identify frameworks, CMS platforms, ecommerce systems, analytics scripts, CDNs, and UI libraries found in the page.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon">C</div>
+            <h3>Color picker</h3>
+            <p>Sample pixels with a magnifier, copy HEX and RGB values, and keep a short history of picked colors.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon">I</div>
+            <h3>Image export</h3>
+            <p>List page images, CSS backgrounds, and inline SVGs, then download files individually or bundled as a ZIP.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon">S</div>
+            <h3>Screenshots</h3>
+            <p>Capture the visible viewport, stitch full-page screenshots, or select a custom region with PNG, JPG, and WebP output.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon">{ }</div>
+            <h3>CSS inspector</h3>
+            <p>Hover elements to inspect computed styles, lock a target on click, and copy the full style block.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section workflow" id="workflow">
+      <div class="section-inner">
+        <div class="section-header">
+          <h2>Built for fast teardown sessions.</h2>
+          <p>Move from discovery to export without leaving the page you are studying.</p>
+        </div>
+        <div class="steps">
+          <article class="step">
+            <span class="step-num">1</span>
+            <h3>Open a site</h3>
+            <p>Visit any page you want to analyze and launch the extension from the Chrome toolbar.</p>
+          </article>
+          <article class="step">
+            <span class="step-num">2</span>
+            <h3>Extract tokens</h3>
+            <p>Review swatches, type styles, spacing, effects, and detected platform signals in the popup.</p>
+          </article>
+          <article class="step">
+            <span class="step-num">3</span>
+            <h3>Inspect details</h3>
+            <p>Use the eyedropper, element inspector, and screenshot modes for exact page-level evidence.</p>
+          </article>
+          <article class="step">
+            <span class="step-num">4</span>
+            <h3>Export assets</h3>
+            <p>Download Markdown documentation, screenshots, individual images, or a full image ZIP archive.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section install" id="install">
+      <div class="section-inner install-panel">
+        <div class="install-copy">
+          <h2>Install as an unpacked extension.</h2>
+          <p>This repository is already structured as a Chrome Manifest V3 extension. Load the folder directly during development.</p>
+          <a class="button" href="chrome://extensions">Open Chrome extensions</a>
+        </div>
+        <ol class="install-list">
+          <li><b>1</b><span>Open <code>chrome://extensions</code> in Chrome.</span></li>
+          <li><b>2</b><span>Enable Developer mode in the top-right corner.</span></li>
+          <li><b>3</b><span>Choose Load unpacked and select this project folder.</span></li>
+          <li><b>4</b><span>Pin the extension and run it on the page you want to inspect.</span></li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-inner">
+        <div class="code-window">
+          <div class="code-title">Export sample</div>
+          <pre><code># Design System
+
+## Colors
+- #2e6af0 - accent
+- #111827 - text
+- #f8fafc - background
+
+## Typography
+- H1: 64px / 700 / Inter
+- Body: 16px / 400 / system-ui
+
+## Assets
+- images.zip
+- screenshot.png</code></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <strong>Design System & Image Extractor</strong>
+      <span>Manifest V3 extension for design audits, screenshots, and asset extraction.</span>
+    </div>
+  </footer>
+</body>
+</html>
