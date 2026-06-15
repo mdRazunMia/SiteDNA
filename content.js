@@ -569,16 +569,32 @@ function showRegionResult(dataUrl, w, h, format) {
 
   const btnCopy = document.createElement('button');
   btnCopy.textContent = 'Copy';
+  btnCopy.type = 'button';
   btnCopy.style.cssText = 'padding:7px 16px;background:#334155;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;';
   btnCopy.addEventListener('click', async function(e) {
     e.stopPropagation();
     try {
-      const resp = await fetch(dataUrl);
-      const blob = await resp.blob();
-      await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+      // Convert to PNG blob for maximum clipboard compatibility
+      const img = new Image();
+      img.src = dataUrl;
+      await new Promise(function(resolve, reject) {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+      var canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      var blob = await new Promise(function(resolve) {
+        canvas.toBlob(resolve, 'image/png');
+      });
+      if (!blob) throw new Error('Canvas toBlob failed');
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
       btnCopy.textContent = 'Copied!';
       setTimeout(function() { btnCopy.textContent = 'Copy'; }, 1500);
-    } catch {
+    } catch (err) {
+      console.error('Region copy failed:', err);
       btnCopy.textContent = 'Failed';
       setTimeout(function() { btnCopy.textContent = 'Copy'; }, 1500);
     }

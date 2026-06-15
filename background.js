@@ -88,7 +88,27 @@ async function captureAndSendRegion(region, dims, tabId, format) {
 function mimeFromFormat(format) {
   if (format === 'jpg' || format === 'jpeg') return 'image/jpeg';
   if (format === 'webp') return 'image/webp';
+  if (format === 'svg') return 'image/svg+xml';
   return 'image/png';
+}
+
+async function rasterToSvgDataUrl(dataUrl) {
+  const resp = await fetch(dataUrl);
+  const blob = await resp.blob();
+  const bitmap = await createImageBitmap(blob);
+  const w = bitmap.width;
+  const h = bitmap.height;
+  const svgString = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}">
+  <image width="${w}" height="${h}" xlink:href="${dataUrl}"/>
+</svg>`;
+  const svgBlob = new Blob([svgString], { type: 'image/svg+xml' });
+  const reader = new FileReader();
+  return new Promise((resolve, reject) => {
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(svgBlob);
+  });
 }
 
 async function stitchAndCropRegion(segments, dims, region, format) {
@@ -111,6 +131,17 @@ async function stitchAndCropRegion(segments, dims, region, format) {
   const cCtx = cropCanvas.getContext('2d');
   cCtx.drawImage(fullCanvas, region.x * dpr, region.y * dpr, region.width * dpr, region.height * dpr, 0, 0, region.width * dpr, region.height * dpr);
 
+  if (format === 'svg') {
+    const pngBlob = await cropCanvas.convertToBlob({ type: 'image/png' });
+    const pngReader = new FileReader();
+    const pngDataUrl = await new Promise((resolve, reject) => {
+      pngReader.onload = () => resolve(pngReader.result);
+      pngReader.onerror = reject;
+      pngReader.readAsDataURL(pngBlob);
+    });
+    return rasterToSvgDataUrl(pngDataUrl);
+  }
+
   const blob = await cropCanvas.convertToBlob({ type: mime, quality: format === 'jpg' ? 0.9 : undefined });
   const reader = new FileReader();
   return new Promise((resolve, reject) => {
@@ -124,12 +155,23 @@ async function cropImage(dataUrl, x, y, w, h, dpr, format) {
   const resp = await fetch(dataUrl);
   const blob = await resp.blob();
   const bitmap = await createImageBitmap(blob);
-  const mime = mimeFromFormat(format);
 
   const canvas = new OffscreenCanvas(w * dpr, h * dpr);
   const ctx = canvas.getContext('2d');
   ctx.drawImage(bitmap, x * dpr, y * dpr, w * dpr, h * dpr, 0, 0, w * dpr, h * dpr);
 
+  if (format === 'svg') {
+    const pngBlob = await canvas.convertToBlob({ type: 'image/png' });
+    const pngReader = new FileReader();
+    const pngDataUrl = await new Promise((resolve, reject) => {
+      pngReader.onload = () => resolve(pngReader.result);
+      pngReader.onerror = reject;
+      pngReader.readAsDataURL(pngBlob);
+    });
+    return rasterToSvgDataUrl(pngDataUrl);
+  }
+
+  const mime = mimeFromFormat(format);
   const croppedBlob = await canvas.convertToBlob({ type: mime, quality: format === 'jpg' ? 0.9 : undefined });
   const reader = new FileReader();
   return new Promise((resolve, reject) => {

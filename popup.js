@@ -658,7 +658,30 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
+  function convertToSvg(dataUrl, callback) {
+    var img = new Image();
+    img.onload = function() {
+      var w = img.naturalWidth;
+      var h = img.naturalHeight;
+      var svgString = '<?xml version="1.0" encoding="UTF-8"?>\n' +
+        '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' + w + '" height="' + h + '">\n' +
+        '  <image width="' + w + '" height="' + h + '" xlink:href="' + dataUrl + '"/>\n' +
+        '</svg>';
+      var svgBlob = new Blob([svgString], { type: 'image/svg+xml' });
+      var reader = new FileReader();
+      reader.onload = function() { callback(reader.result); };
+      reader.onerror = function() { callback(null); };
+      reader.readAsDataURL(svgBlob);
+    };
+    img.onerror = function() { callback(null); };
+    img.src = dataUrl;
+  }
+
   function convertDataUrl(dataUrl, format, callback) {
+    if (format === 'svg') {
+      convertToSvg(dataUrl, callback);
+      return;
+    }
     var img = new Image();
     img.onload = function() {
       var canvas = document.createElement('canvas');
@@ -678,7 +701,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function downloadDataUrl(dataUrl, filename, format) {
-    if (format === 'png') {
+    if (format === 'png' || format === 'svg') {
       var a = document.createElement('a');
       a.href = dataUrl;
       a.download = filename;
@@ -721,6 +744,19 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
       }
       var format = screenshotFormat ? screenshotFormat.value : 'png';
+      if (format === 'svg') {
+        fetch(currentScreenshotDataUrl).then(function(resp) { return resp.text(); })
+          .then(function(text) {
+            navigator.clipboard.writeText(text).then(function() {
+              showStatus('Copied SVG to clipboard!', 'success');
+            }).catch(function() {
+              showStatus('Could not copy to clipboard.', 'error');
+            });
+          }).catch(function() {
+            showStatus('Failed to read SVG.', 'error');
+          });
+        return;
+      }
       var mimeType = format === 'jpg' ? 'image/jpeg' : format === 'webp' ? 'image/webp' : 'image/png';
 
       var img = new Image();
