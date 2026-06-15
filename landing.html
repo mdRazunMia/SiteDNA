@@ -3,746 +3,768 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Design System & Image Extractor</title>
+  <title>Design Scanner — Extract, Inspect & Capture Any Website</title>
+  <meta name="description" content="Chrome extension that extracts design tokens, picks colors, captures screenshots, inspects CSS, and downloads assets from any website.">
+  <link rel="icon" href="icon128.png">
   <style>
     :root {
-      --ink: #111827;
-      --muted: #5b6472;
-      --line: #d9dee8;
-      --paper: #fbfcfe;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --paper: #f8fafc;
       --panel: #ffffff;
-      --lime: #b8ef4a;
-      --blue: #2e6af0;
-      --violet: #7357f2;
-      --cyan: #36c3d6;
-      --coral: #ff674f;
-      --amber: #f0b72f;
-      --green: #26a65b;
-      --shadow: 0 24px 80px rgba(17, 24, 39, 0.16);
+      --lime: #84cc16;
+      --blue: #3b82f6;
+      --violet: #8b5cf6;
+      --cyan: #06b6d4;
+      --coral: #f97316;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --shadow: 0 24px 80px rgba(15, 23, 42, 0.14);
+      --glow: 0 0 40px rgba(59, 130, 246, 0.25);
     }
 
-    * {
-      box-sizing: border-box;
-    }
-
-    html {
-      scroll-behavior: smooth;
-    }
-
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
       margin: 0;
       color: var(--ink);
       background: var(--paper);
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      line-height: 1.5;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
     }
+    a { color: inherit; text-decoration: none; }
+    button, .button { font: inherit; cursor: pointer; }
 
-    a {
-      color: inherit;
-      text-decoration: none;
-    }
-
-    button,
-    .button {
-      font: inherit;
-    }
-
+    /* ===== NAV ===== */
     .nav {
       position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 10;
-      border-bottom: 1px solid rgba(217, 222, 232, 0.72);
-      background: rgba(251, 252, 254, 0.86);
-      backdrop-filter: blur(16px);
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      border-bottom: 1px solid rgba(226, 232, 240, 0.72);
+      background: rgba(248, 250, 252, 0.88);
+      backdrop-filter: blur(20px);
     }
-
     .nav-inner {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      width: min(1180px, calc(100% - 40px));
-      min-height: 68px;
+      width: min(1200px, calc(100% - 40px));
+      min-height: 70px;
       margin: 0 auto;
       gap: 20px;
     }
-
     .brand {
       display: flex;
       align-items: center;
       gap: 12px;
-      min-width: 0;
       font-weight: 800;
+      font-size: 16px;
     }
-
     .brand img {
-      width: 34px;
-      height: 34px;
-      border-radius: 9px;
-      flex: 0 0 auto;
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
     }
-
-    .brand span {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
     .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 22px;
+      display: flex; align-items: center; gap: 28px;
       color: var(--muted);
       font-size: 14px;
-      font-weight: 650;
+      font-weight: 600;
     }
-
-    .nav-links a:hover {
-      color: var(--ink);
-    }
-
+    .nav-links a:hover { color: var(--ink); }
     .button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 44px;
-      padding: 0 18px;
-      border: 1px solid var(--ink);
-      border-radius: 8px;
-      background: var(--ink);
-      color: #fff;
-      font-weight: 800;
-      white-space: nowrap;
-      box-shadow: 0 10px 26px rgba(17, 24, 39, 0.18);
+      display: inline-flex; align-items: center; justify-content: center;
+      min-height: 44px; padding: 0 20px;
+      border: 1px solid var(--ink); border-radius: 10px;
+      background: var(--ink); color: #fff;
+      font-weight: 700; font-size: 14px;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+      transition: all 0.2s ease;
     }
-
+    .button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.22);
+    }
     .button.secondary {
-      background: #fff;
-      color: var(--ink);
-      box-shadow: none;
+      background: #fff; color: var(--ink);
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+    .button.secondary:hover {
+      background: var(--paper);
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+    }
+    .button.small {
+      min-height: 36px; padding: 0 14px;
+      font-size: 13px; border-radius: 8px;
+    }
+    .nav-links .button:hover {
+      color: #fff;
+    }
+    .button.download {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      border-color: #16a34a;
+      box-shadow: 0 8px 24px rgba(22, 163, 74, 0.22);
+    }
+    .button.download:hover {
+      background: linear-gradient(135deg, #16a34a, #15803d);
+      box-shadow: 0 12px 32px rgba(22, 163, 74, 0.28);
+      transform: translateY(-2px);
     }
 
+    /* ===== HERO ===== */
     .hero {
       position: relative;
-      min-height: 92vh;
+      min-height: 100vh;
       overflow: hidden;
-      background:
-        linear-gradient(125deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.72) 44%, rgba(255, 255, 255, 0.2) 100%),
-        linear-gradient(90deg, rgba(46, 106, 240, 0.18), rgba(184, 239, 74, 0.24)),
-        #edf3f7;
+      background: linear-gradient(135deg, #f0f4ff 0%, #ffffff 40%, #f0fdf4 100%);
     }
-
     .hero::before {
       content: "";
-      position: absolute;
-      inset: 0;
-      opacity: 0.35;
+      position: absolute; inset: 0;
+      opacity: 0.45;
       background-image:
-        linear-gradient(rgba(17, 24, 39, 0.08) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(17, 24, 39, 0.08) 1px, transparent 1px);
-      background-size: 48px 48px;
+        radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(132, 204, 22, 0.12) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.08) 0%, transparent 60%);
+    }
+    .hero::after {
+      content: "";
+      position: absolute; inset: 0;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230f172a' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
     }
 
     .hero-inner {
       position: relative;
       display: grid;
+      grid-template-columns: 1fr 1fr;
       align-items: center;
-      width: min(1180px, calc(100% - 40px));
-      min-height: 92vh;
+      gap: 60px;
+      width: min(1200px, calc(100% - 40px));
+      min-height: 100vh;
       margin: 0 auto;
-      padding: 112px 0 70px;
+      padding: 140px 0 80px;
     }
 
-    .hero-copy {
-      max-width: 640px;
-      z-index: 2;
-    }
-
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 18px;
-      color: #324155;
-      font-size: 14px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0;
-    }
-
-    .eyebrow::before {
-      content: "";
-      width: 34px;
-      height: 6px;
-      border-radius: 99px;
-      background: linear-gradient(90deg, var(--lime), var(--cyan));
-    }
-
-    h1 {
-      max-width: 780px;
-      margin: 0;
-      font-size: clamp(52px, 7vw, 90px);
-      line-height: 0.92;
-      letter-spacing: 0;
-    }
-
-    .hero p {
-      max-width: 620px;
-      margin: 26px 0 0;
-      color: #313b49;
-      font-size: 20px;
-    }
-
-    .hero-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 34px;
-    }
-
-    .trust-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 28px;
-      color: #465365;
+    .hero-copy { max-width: 600px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      margin-bottom: 24px;
+      padding: 6px 14px;
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      border-radius: 999px;
+      background: rgba(59, 130, 246, 0.06);
+      color: var(--blue);
       font-size: 13px;
       font-weight: 700;
     }
-
-    .trust-row span {
-      display: inline-flex;
-      align-items: center;
-      min-height: 34px;
-      padding: 0 12px;
-      border: 1px solid rgba(17, 24, 39, 0.12);
+    .badge::before {
+      content: "";
+      width: 8px; height: 8px;
       border-radius: 999px;
-      background: rgba(255, 255, 255, 0.72);
+      background: var(--lime);
+      box-shadow: 0 0 8px var(--lime);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.85); }
     }
 
+    h1 {
+      margin: 0;
+      font-size: clamp(44px, 5.5vw, 72px);
+      line-height: 1.05;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    h1 .highlight {
+      background: linear-gradient(135deg, var(--blue), var(--violet));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      max-width: 520px;
+      margin: 24px 0 0;
+      color: #475569;
+      font-size: 18px;
+      line-height: 1.6;
+    }
+    .hero-actions {
+      display: flex; flex-wrap: wrap; gap: 12px;
+      margin-top: 36px;
+    }
+    .trust-row {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin-top: 32px;
+    }
+    .trust-row span {
+      display: inline-flex; align-items: center; gap: 6px;
+      min-height: 32px;
+      padding: 0 12px;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.7);
+      color: #475569;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .trust-row span::before {
+      content: "✓";
+      color: var(--lime);
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    /* ===== PRODUCT MOCKUP ===== */
     .product-stage {
-      position: absolute;
-      right: max(-150px, calc((100vw - 1180px) / 2 - 180px));
-      bottom: 28px;
-      width: min(640px, 50vw);
-      min-width: 420px;
-      transform: rotate(-3deg);
-      z-index: 1;
+      position: relative;
+      transform: perspective(1200px) rotateY(-8deg) rotateX(4deg);
+      transition: transform 0.6s ease;
     }
-
+    .product-stage:hover {
+      transform: perspective(1200px) rotateY(-4deg) rotateX(2deg);
+    }
     .browser-frame {
-      border: 1px solid rgba(17, 24, 39, 0.16);
-      border-radius: 18px;
-      background: rgba(255, 255, 255, 0.92);
-      box-shadow: var(--shadow);
+      border: 1px solid rgba(15, 23, 42, 0.1);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.95);
+      box-shadow: var(--shadow), var(--glow);
       overflow: hidden;
     }
-
     .browser-top {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-height: 44px;
+      display: flex; align-items: center; gap: 8px;
+      min-height: 42px;
       padding: 0 14px;
       border-bottom: 1px solid var(--line);
-      background: #f5f7fb;
+      background: #f8fafc;
     }
-
     .dot {
-      width: 11px;
-      height: 11px;
+      width: 10px; height: 10px;
       border-radius: 999px;
-      background: var(--coral);
+      background: var(--rose);
     }
-
-    .dot:nth-child(2) {
-      background: var(--amber);
-    }
-
-    .dot:nth-child(3) {
-      background: var(--green);
-    }
-
+    .dot:nth-child(2) { background: var(--amber); }
+    .dot:nth-child(3) { background: var(--lime); }
     .browser-url {
       flex: 1;
-      min-height: 26px;
+      min-height: 24px;
       margin-left: 8px;
       border-radius: 999px;
-      background: #e8edf4;
+      background: #e2e8f0;
+      max-width: 200px;
     }
-
     .mock-page {
-      position: relative;
       display: grid;
-      grid-template-columns: 1fr 286px;
-      gap: 24px;
-      min-height: 470px;
-      padding: 24px;
-      background: linear-gradient(135deg, #ffffff 0%, #f1f5fa 100%);
+      grid-template-columns: 1fr 280px;
+      gap: 20px;
+      min-height: 420px;
+      padding: 20px;
+      background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
     }
-
     .sample-site {
       display: grid;
-      grid-template-rows: 34px 120px 1fr;
-      gap: 18px;
+      grid-template-rows: 32px 100px 1fr;
+      gap: 14px;
       min-width: 0;
     }
-
-    .sample-nav,
-    .sample-hero,
-    .sample-card,
-    .sample-strip {
-      border: 1px solid #dce3ec;
+    .sample-nav, .sample-hero, .sample-card {
+      border: 1px solid #e2e8f0;
       background: #fff;
-    }
-
-    .sample-nav {
       border-radius: 8px;
     }
-
     .sample-hero {
-      border-radius: 10px;
-      background:
-        linear-gradient(90deg, rgba(46, 106, 240, 0.9), rgba(54, 195, 214, 0.85)),
-        #2e6af0;
+      background: linear-gradient(90deg, rgba(59, 130, 246, 0.9), rgba(6, 182, 212, 0.85));
     }
-
     .sample-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
     }
-
     .sample-card {
-      min-height: 116px;
-      border-radius: 10px;
-      padding: 14px;
+      min-height: 90px;
+      padding: 12px;
     }
-
-    .sample-card::before,
-    .sample-card::after,
-    .sample-strip {
+    .sample-card::before, .sample-card::after {
       content: "";
       display: block;
-      height: 12px;
+      height: 10px;
       border-radius: 999px;
-      background: #dfe6ef;
+      background: #e2e8f0;
     }
-
     .sample-card::after {
-      width: 62%;
-      margin-top: 12px;
-      background: #eef2f7;
+      width: 60%;
+      margin-top: 10px;
+      background: #f1f5f9;
     }
 
     .extension-popover {
-      width: 286px;
-      border: 1px solid #d7dee9;
-      border-radius: 14px;
+      width: 280px;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
       background: #fff;
-      box-shadow: 0 20px 56px rgba(17, 24, 39, 0.18);
+      box-shadow: 0 20px 60px rgba(15, 23, 42, 0.15);
       overflow: hidden;
     }
-
     .popover-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px;
-      border-bottom: 1px solid #e6ebf2;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 14px;
+      border-bottom: 1px solid #e2e8f0;
       font-size: 13px;
-      font-weight: 850;
+      font-weight: 700;
     }
-
     .popover-tabs {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      border-bottom: 1px solid #e6ebf2;
+      border-bottom: 1px solid #e2e8f0;
     }
-
     .popover-tabs span {
-      min-height: 30px;
-      border-right: 1px solid #edf1f6;
+      min-height: 28px;
+      border-right: 1px solid #f1f5f9;
+      font-size: 9px;
+      display: flex; align-items: center; justify-content: center;
+      color: #94a3b8;
+      font-weight: 600;
     }
-
     .popover-tabs span:first-child {
       background: var(--ink);
+      color: #fff;
     }
-
-    .token-panel {
-      padding: 14px;
-    }
-
+    .token-panel { padding: 12px; }
     .token-title {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
+      display: flex; justify-content: space-between; gap: 10px;
       margin-bottom: 10px;
-      color: #111827;
+      color: var(--ink);
       font-size: 11px;
-      font-weight: 850;
+      font-weight: 700;
       text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
-
     .swatches {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      margin-bottom: 16px;
+      gap: 6px;
+      margin-bottom: 14px;
     }
-
     .swatches span {
       aspect-ratio: 1;
-      border: 1px solid #dce3ec;
-      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
     }
-
     .swatches span:nth-child(1) { background: var(--blue); }
     .swatches span:nth-child(2) { background: var(--cyan); }
     .swatches span:nth-child(3) { background: var(--lime); }
     .swatches span:nth-child(4) { background: var(--coral); }
-    .swatches span:nth-child(5) { background: #111827; }
-    .swatches span:nth-child(6) { background: #64748b; }
-    .swatches span:nth-child(7) { background: #f8fafc; }
+    .swatches span:nth-child(5) { background: var(--ink); }
+    .swatches span:nth-child(6) { background: var(--muted); }
+    .swatches span:nth-child(7) { background: #f1f5f9; }
     .swatches span:nth-child(8) { background: var(--amber); }
-
-    .metric-list {
-      display: grid;
-      gap: 8px;
-    }
-
+    .metric-list { display: grid; gap: 6px; }
     .metric {
-      display: flex;
-      justify-content: space-between;
-      min-height: 32px;
-      padding: 8px 10px;
-      border: 1px solid #edf1f6;
-      border-radius: 8px;
+      display: flex; justify-content: space-between;
+      min-height: 30px;
+      padding: 6px 10px;
+      border: 1px solid #f1f5f9;
+      border-radius: 6px;
       background: #f8fafc;
-      color: #425066;
+      color: #475569;
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 600;
     }
 
+    /* ===== SECTIONS ===== */
     .section {
-      padding: 86px 0;
+      padding: 100px 0;
     }
-
     .section-inner {
-      width: min(1180px, calc(100% - 40px));
+      width: min(1200px, calc(100% - 40px));
       margin: 0 auto;
     }
-
     .section-header {
-      display: flex;
-      align-items: end;
-      justify-content: space-between;
-      gap: 24px;
-      margin-bottom: 34px;
+      text-align: center;
+      max-width: 700px;
+      margin: 0 auto 60px;
     }
-
-    .section h2 {
-      max-width: 720px;
+    .section-header h2 {
       margin: 0;
-      font-size: clamp(34px, 5vw, 62px);
-      line-height: 1;
-      letter-spacing: 0;
-    }
-
-    .section-header p {
-      max-width: 420px;
-      margin: 0;
-      color: var(--muted);
-      font-size: 17px;
-    }
-
-    .feature-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 16px;
-    }
-
-    .feature {
-      min-height: 230px;
-      padding: 22px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--panel);
-    }
-
-    .feature-icon {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 44px;
-      height: 44px;
-      margin-bottom: 28px;
-      border-radius: 8px;
-      background: #eff6ff;
-      color: var(--blue);
-      font-size: 22px;
-      font-weight: 900;
-    }
-
-    .feature:nth-child(2) .feature-icon { background: #ecfeff; color: #08798a; }
-    .feature:nth-child(3) .feature-icon { background: #f2fce4; color: #4d7c0f; }
-    .feature:nth-child(4) .feature-icon { background: #fff7ed; color: #c2410c; }
-    .feature:nth-child(5) .feature-icon { background: #f5f3ff; color: var(--violet); }
-    .feature:nth-child(6) .feature-icon { background: #fef2f2; color: #b42318; }
-
-    .feature h3 {
-      margin: 0 0 10px;
-      font-size: 22px;
+      font-size: clamp(32px, 4vw, 52px);
       line-height: 1.1;
+      font-weight: 800;
+      letter-spacing: -0.02em;
     }
-
-    .feature p {
-      margin: 0;
-      color: var(--muted);
-    }
-
-    .workflow {
-      background: #111827;
-      color: #fff;
-    }
-
-    .workflow .section-header p {
-      color: #c8d0dc;
-    }
-
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 1px;
-      overflow: hidden;
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.16);
-    }
-
-    .step {
-      min-height: 240px;
-      padding: 24px;
-      background: #182235;
-    }
-
-    .step-num {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 36px;
-      height: 36px;
-      margin-bottom: 46px;
-      border-radius: 999px;
-      background: var(--lime);
-      color: #111827;
-      font-weight: 900;
-    }
-
-    .step h3 {
-      margin: 0 0 10px;
-      font-size: 22px;
-    }
-
-    .step p {
-      margin: 0;
-      color: #c8d0dc;
-    }
-
-    .install {
-      background: #eef3f7;
-    }
-
-    .install-panel {
-      display: grid;
-      grid-template-columns: 0.85fr 1.15fr;
-      gap: 34px;
-      align-items: center;
-    }
-
-    .install-copy h2 {
-      margin-bottom: 18px;
-    }
-
-    .install-copy p {
-      max-width: 520px;
-      margin: 0 0 28px;
+    .section-header p {
+      margin: 16px 0 0;
       color: var(--muted);
       font-size: 18px;
     }
+    .section-label {
+      display: inline-block;
+      margin-bottom: 16px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: rgba(59, 130, 246, 0.08);
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
 
+    /* ===== FEATURES ===== */
+    .features { background: #fff; }
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    .feature {
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      transition: all 0.3s ease;
+    }
+    .feature:hover {
+      border-color: rgba(59, 130, 246, 0.3);
+      box-shadow: var(--shadow);
+      transform: translateY(-4px);
+    }
+    .feature-icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 48px; height: 48px;
+      margin-bottom: 20px;
+      border-radius: 12px;
+      font-size: 22px;
+    }
+    .feature:nth-child(1) .feature-icon { background: #eff6ff; color: var(--blue); }
+    .feature:nth-child(2) .feature-icon { background: #f0fdf4; color: var(--lime); }
+    .feature:nth-child(3) .feature-icon { background: #fff7ed; color: var(--coral); }
+    .feature:nth-child(4) .feature-icon { background: #fef2f2; color: var(--rose); }
+    .feature:nth-child(5) .feature-icon { background: #f5f3ff; color: var(--violet); }
+    .feature:nth-child(6) .feature-icon { background: #ecfeff; color: var(--cyan); }
+    .feature h3 {
+      margin: 0 0 10px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .feature p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    /* ===== SHOWCASE ===== */
+    .showcase {
+      background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+      color: #fff;
+      overflow: hidden;
+    }
+    .showcase .section-header h2 { color: #fff; }
+    .showcase .section-header p { color: #94a3b8; }
+    .showcase-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+    .showcase-card {
+      padding: 32px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      transition: all 0.3s ease;
+    }
+    .showcase-card:hover {
+      border-color: rgba(59, 130, 246, 0.3);
+      background: rgba(255, 255, 255, 0.05);
+      transform: translateY(-2px);
+    }
+    .showcase-card h3 {
+      display: flex; align-items: center; gap: 12px;
+      margin: 0 0 14px;
+      font-size: 20px;
+      font-weight: 700;
+    }
+    .showcase-card h3 .icon {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: rgba(59, 130, 246, 0.15);
+      color: var(--blue);
+      font-size: 18px;
+    }
+    .showcase-card p {
+      margin: 0 0 20px;
+      color: #94a3b8;
+      font-size: 15px;
+      line-height: 1.6;
+    }
+    .showcase-visual {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .showcase-chip {
+      padding: 6px 12px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      color: #e2e8f0;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: "SF Mono", Monaco, monospace;
+    }
+    .color-strip {
+      display: flex; gap: 6px;
+    }
+    .color-strip span {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* ===== STEPS ===== */
+    .steps-section { background: #fff; }
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+    .step-card {
+      padding: 28px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+      position: relative;
+      transition: all 0.3s ease;
+    }
+    .step-card:hover {
+      box-shadow: var(--shadow);
+      transform: translateY(-3px);
+    }
+    .step-card::after {
+      content: "";
+      position: absolute;
+      top: 40px; right: -20px;
+      width: 20px; height: 2px;
+      background: linear-gradient(90deg, var(--line), transparent);
+    }
+    .step-card:last-child::after { display: none; }
+    .step-num {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 40px; height: 40px;
+      margin-bottom: 20px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--blue), var(--violet));
+      color: #fff;
+      font-size: 18px;
+      font-weight: 800;
+    }
+    .step-card h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+    .step-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ===== INSTALL ===== */
+    .install-section {
+      background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+    }
+    .install-panel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: center;
+    }
+    .install-copy h2 {
+      margin: 0 0 18px;
+      font-size: clamp(28px, 3.5vw, 42px);
+      line-height: 1.1;
+      font-weight: 800;
+    }
+    .install-copy p {
+      margin: 0 0 28px;
+      color: var(--muted);
+      font-size: 17px;
+      line-height: 1.6;
+    }
     .install-list {
       display: grid;
       gap: 12px;
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
       list-style: none;
     }
-
     .install-list li {
-      display: flex;
-      gap: 12px;
-      align-items: flex-start;
-      padding: 16px;
+      display: flex; gap: 14px; align-items: flex-start;
+      padding: 18px 20px;
       border: 1px solid var(--line);
-      border-radius: 8px;
+      border-radius: 12px;
       background: #fff;
-      font-weight: 750;
+      font-weight: 600;
+      font-size: 15px;
+      transition: all 0.2s ease;
     }
-
+    .install-list li:hover {
+      border-color: var(--blue);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08);
+    }
     .install-list b {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 28px; height: 28px;
       border-radius: 999px;
       background: var(--ink);
       color: #fff;
-      flex: 0 0 auto;
+      flex-shrink: 0;
       font-size: 13px;
+      font-weight: 700;
     }
 
+    /* ===== CODE ===== */
+    .code-section { background: #fff; padding: 60px 0; }
     .code-window {
-      border: 1px solid #273448;
-      border-radius: 14px;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
       overflow: hidden;
-      background: #101827;
+      background: #0f172a;
       box-shadow: var(--shadow);
     }
-
     .code-title {
-      display: flex;
-      align-items: center;
-      min-height: 46px;
-      padding: 0 16px;
-      border-bottom: 1px solid #263247;
-      color: #c8d0dc;
+      display: flex; align-items: center;
+      min-height: 48px;
+      padding: 0 20px;
+      border-bottom: 1px solid #1e293b;
+      color: #94a3b8;
       font-size: 13px;
-      font-weight: 800;
+      font-weight: 700;
     }
-
     pre {
       margin: 0;
-      padding: 22px;
+      padding: 28px;
       overflow-x: auto;
-      color: #e8edf4;
+      color: #e2e8f0;
       font: 14px/1.7 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
     }
+    .code-keyword { color: #c084fc; }
+    .code-string { color: #84cc16; }
+    .code-comment { color: #64748b; }
+    .code-number { color: #f59e0b; }
 
+    /* ===== CTA ===== */
+    .cta-section {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #fff;
+      text-align: center;
+      padding: 100px 0;
+    }
+    .cta-section h2 {
+      margin: 0 0 16px;
+      font-size: clamp(32px, 4vw, 48px);
+      font-weight: 800;
+    }
+    .cta-section p {
+      margin: 0 auto 32px;
+      max-width: 520px;
+      color: #94a3b8;
+      font-size: 18px;
+    }
+    .cta-buttons {
+      display: flex; justify-content: center; gap: 12px;
+      flex-wrap: wrap;
+    }
+    .cta-section .button {
+      min-height: 52px;
+      padding: 0 32px;
+      font-size: 16px;
+      border-radius: 12px;
+    }
+    .cta-section .button.secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.15);
+    }
+    .cta-section .button.secondary:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    /* ===== FOOTER ===== */
     .footer {
-      padding: 34px 0;
+      padding: 40px 0;
       border-top: 1px solid var(--line);
       background: #fff;
       color: var(--muted);
       font-size: 14px;
     }
-
     .footer-inner {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      width: min(1180px, calc(100% - 40px));
+      display: flex; align-items: center; justify-content: space-between;
+      width: min(1200px, calc(100% - 40px));
       margin: 0 auto;
       gap: 20px;
     }
+    .footer-brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .footer-brand img {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+    }
+    .footer-links {
+      display: flex; gap: 24px;
+    }
+    .footer-links a:hover { color: var(--ink); }
 
-    @media (max-width: 980px) {
-      .nav-links a {
-        display: none;
-      }
-
-      .product-stage {
-        position: relative;
-        right: auto;
-        bottom: auto;
-        width: 100%;
-        min-width: 0;
-        margin-top: 46px;
-        transform: none;
-      }
-
-      .hero-inner {
-        display: block;
-      }
-
-      .mock-page {
-        grid-template-columns: 1fr;
-      }
-
-      .extension-popover {
-        width: 100%;
-      }
-
-      .feature-grid,
-      .steps,
-      .install-panel {
-        grid-template-columns: 1fr 1fr;
-      }
+    /* ===== ANIMATIONS ===== */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
     }
 
-    @media (max-width: 680px) {
-      .nav-inner,
-      .section-inner,
-      .footer-inner,
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1024px) {
       .hero-inner {
-        width: min(100% - 28px, 1180px);
-      }
-
-      .brand span {
-        max-width: 190px;
-      }
-
-      .nav .button {
-        display: none;
-      }
-
-      .hero {
-        min-height: auto;
-      }
-
-      .hero-inner {
-        min-height: auto;
-        padding-top: 104px;
-      }
-
-      h1 {
-        font-size: 52px;
-      }
-
-      .hero p {
-        font-size: 18px;
-      }
-
-      .section {
-        padding: 64px 0;
-      }
-
-      .section-header,
-      .footer-inner {
-        display: grid;
-      }
-
-      .feature-grid,
-      .steps,
-      .install-panel,
-      .sample-grid {
         grid-template-columns: 1fr;
+        text-align: center;
+        gap: 40px;
       }
-
-      .feature,
-      .step {
-        min-height: auto;
+      .hero-copy { max-width: 100%; }
+      .hero p { margin: 24px auto 0; }
+      .hero-actions { justify-content: center; }
+      .trust-row { justify-content: center; }
+      .product-stage {
+        transform: none;
+        max-width: 600px;
+        margin: 0 auto;
       }
-
-      .step-num {
-        margin-bottom: 28px;
-      }
-
-      .mock-page {
-        padding: 16px;
-      }
+      .product-stage:hover { transform: none; }
+      .feature-grid { grid-template-columns: repeat(2, 1fr); }
+      .showcase-grid { grid-template-columns: 1fr; }
+      .steps-grid { grid-template-columns: repeat(2, 1fr); }
+      .step-card::after { display: none; }
+      .install-panel { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .nav-links a { display: none; }
+      .nav .button { display: none; }
+      .feature-grid { grid-template-columns: 1fr; }
+      .steps-grid { grid-template-columns: 1fr; }
+      .mock-page { grid-template-columns: 1fr; }
+      .extension-popover { width: 100%; }
+      .hero-inner { padding: 120px 0 60px; }
+      h1 { font-size: 40px; }
+      .footer-inner { flex-direction: column; text-align: center; gap: 16px; }
+      .footer-links { flex-wrap: wrap; justify-content: center; }
     }
   </style>
 </head>
@@ -750,33 +772,37 @@
   <nav class="nav" aria-label="Primary navigation">
     <div class="nav-inner">
       <a class="brand" href="#">
-        <img src="icon128.png" alt="Design System & Image Extractor icon">
-        <span>Design System & Image Extractor</span>
+        <img src="icon128.png" alt="Design Scanner icon">
+        <span>Design Scanner</span>
       </a>
       <div class="nav-links">
         <a href="#features">Features</a>
-        <a href="#workflow">Workflow</a>
+        <a href="#showcase">Showcase</a>
+        <a href="#workflow">How it works</a>
         <a href="#install">Install</a>
-        <a class="button" href="#install">Load unpacked</a>
+        <a class="button small" href="#install">Get Extension</a>
       </div>
     </div>
   </nav>
 
   <main>
+    <!-- HERO -->
     <section class="hero">
       <div class="hero-inner">
         <div class="hero-copy">
-          <div class="eyebrow">Manifest V3 Chrome extension</div>
-          <h1>Design System & Image Extractor</h1>
-          <p>Inspect any website, collect its design tokens, detect the stack behind it, pick exact colors, capture screenshots, and export image assets from one browser popup.</p>
+          <div class="badge">Manifest V3 Chrome Extension</div>
+          <h1>Extract, Inspect & <span class="highlight">Capture</span> Any Website</h1>
+          <p>The ultimate browser toolkit for designers and developers. Instantly pull design tokens, pick colors with a pixel-perfect eyedropper, capture screenshots, inspect CSS, and download every asset — all from one popup.</p>
           <div class="hero-actions">
-            <a class="button" href="#install">Install locally</a>
-            <a class="button secondary" href="#features">See capabilities</a>
+            <a class="button download" href="https://drive.google.com/uc?export=download&id=YOUR_FILE_ID" target="_blank" rel="noopener">Download</a>
+            <a class="button" href="#install">Install Free</a>
+            <a class="button secondary" href="#features">Explore Features</a>
           </div>
-          <div class="trust-row" aria-label="Extension capabilities">
-            <span>No external CDN dependencies</span>
-            <span>Exports Markdown and ZIP</span>
+          <div class="trust-row">
+            <span>Zero external dependencies</span>
+            <span>Export Markdown & ZIP</span>
             <span>Works on any website</span>
+            <span>Offline capable</span>
           </div>
         </div>
 
@@ -801,26 +827,30 @@
               </div>
               <div class="extension-popover">
                 <div class="popover-head">
-                  <span>Design System Analyzer</span>
-                  <span>Export .md</span>
+                  <span>Design Scanner</span>
+                  <span style="color:var(--blue);font-size:12px;">Export .md</span>
                 </div>
                 <div class="popover-tabs" aria-hidden="true">
-                  <span></span><span></span><span></span><span></span><span></span>
+                  <span>Design</span>
+                  <span>Colors</span>
+                  <span>Capture</span>
+                  <span>Inspect</span>
+                  <span>Assets</span>
                 </div>
                 <div class="token-panel">
                   <div class="token-title">
                     <span>Color Palette</span>
-                    <span>18 colors</span>
+                    <span style="color:var(--muted);">24 colors</span>
                   </div>
                   <div class="swatches" aria-hidden="true">
                     <span></span><span></span><span></span><span></span>
                     <span></span><span></span><span></span><span></span>
                   </div>
                   <div class="metric-list">
-                    <div class="metric"><span>Typography</span><span>12 styles</span></div>
-                    <div class="metric"><span>Spacing scale</span><span>24 values</span></div>
-                    <div class="metric"><span>Images</span><span>ZIP ready</span></div>
-                    <div class="metric"><span>Inspector</span><span>CSS lock</span></div>
+                    <div class="metric"><span>Typography</span><span style="color:var(--blue);">18 styles</span></div>
+                    <div class="metric"><span>Spacing</span><span style="color:var(--lime);">32 values</span></div>
+                    <div class="metric"><span>Fonts</span><span style="color:var(--violet);">6 families</span></div>
+                    <div class="metric"><span>Shadows</span><span style="color:var(--coral);">12 effects</span></div>
                   </div>
                 </div>
               </div>
@@ -830,112 +860,196 @@
       </div>
     </section>
 
-    <section class="section" id="features">
+    <!-- FEATURES -->
+    <section class="section features" id="features">
       <div class="section-inner">
         <div class="section-header">
-          <h2>One popup for visual audits and asset capture.</h2>
-          <p>The extension focuses on repeatable frontend research tasks that usually require several separate tools.</p>
+          <div class="section-label">Features</div>
+          <h2>One popup. Six superpowers.</h2>
+          <p>Everything you need to audit, replicate, or document any website's design — without switching tools.</p>
         </div>
         <div class="feature-grid">
           <article class="feature">
-            <div class="feature-icon">#</div>
-            <h3>Design tokens</h3>
-            <p>Extract colors, font families, typography styles, spacing, shadows, and border radius values from the active page.</p>
+            <div class="feature-icon">🎨</div>
+            <h3>Design Tokens</h3>
+            <p>Auto-extracts colors, typography, font families, spacing, shadows, and border radius from computed styles.</p>
           </article>
           <article class="feature">
-            <div class="feature-icon">T</div>
-            <h3>Tech detection</h3>
-            <p>Identify frameworks, CMS platforms, ecommerce systems, analytics scripts, CDNs, and UI libraries found in the page.</p>
+            <div class="feature-icon">🔍</div>
+            <h3>Tech Detection</h3>
+            <p>Identifies frameworks, CMS platforms, analytics, CDNs, and UI libraries running behind the scenes.</p>
           </article>
           <article class="feature">
-            <div class="feature-icon">C</div>
-            <h3>Color picker</h3>
-            <p>Sample pixels with a magnifier, copy HEX and RGB values, and keep a short history of picked colors.</p>
+            <div class="feature-icon">🎯</div>
+            <h3>Color Picker</h3>
+            <p>Pixel-level eyedropper with live magnifier. Copy HEX/RGB instantly and keep a history of your picks.</p>
           </article>
           <article class="feature">
-            <div class="feature-icon">I</div>
-            <h3>Image export</h3>
-            <p>List page images, CSS backgrounds, and inline SVGs, then download files individually or bundled as a ZIP.</p>
-          </article>
-          <article class="feature">
-            <div class="feature-icon">S</div>
+            <div class="feature-icon">📸</div>
             <h3>Screenshots</h3>
-            <p>Capture the visible viewport, stitch full-page screenshots, or select a custom region with PNG, JPG, and WebP output.</p>
+            <p>Capture visible area, full page (auto-scroll & stitch), or a custom drag-to-select region. PNG, JPG, WebP.</p>
           </article>
           <article class="feature">
-            <div class="feature-icon">{ }</div>
-            <h3>CSS inspector</h3>
-            <p>Hover elements to inspect computed styles, lock a target on click, and copy the full style block.</p>
+            <div class="feature-icon">🧩</div>
+            <h3>CSS Inspector</h3>
+            <p>Hover any element to preview computed styles. Lock on click and copy the full CSS block to your clipboard.</p>
+          </article>
+          <article class="feature">
+            <div class="feature-icon">📦</div>
+            <h3>Asset Export</h3>
+            <p>Grab all images, CSS backgrounds, and inline SVGs. Download individually or bundled as a ZIP archive.</p>
           </article>
         </div>
       </div>
     </section>
 
-    <section class="section workflow" id="workflow">
+    <!-- SHOWCASE -->
+    <section class="section showcase" id="showcase">
       <div class="section-inner">
         <div class="section-header">
-          <h2>Built for fast teardown sessions.</h2>
-          <p>Move from discovery to export without leaving the page you are studying.</p>
+          <div class="section-label" style="background:rgba(255,255,255,0.08);color:#60a5fa;">See it in action</div>
+          <h2>Built for real-world teardowns.</h2>
+          <p>From discovery to export — every workflow is designed for speed and accuracy.</p>
         </div>
-        <div class="steps">
-          <article class="step">
-            <span class="step-num">1</span>
-            <h3>Open a site</h3>
-            <p>Visit any page you want to analyze and launch the extension from the Chrome toolbar.</p>
+        <div class="showcase-grid">
+          <div class="showcase-card">
+            <h3><span class="icon">🎨</span> Color Palette</h3>
+            <p>Automatically detects text, background, border, and accent colors. Click any swatch to copy. Export the full palette as Markdown.</p>
+            <div class="showcase-visual">
+              <div class="color-strip">
+                <span style="background:#3b82f6"></span>
+                <span style="background:#06b6d4"></span>
+                <span style="background:#84cc16"></span>
+                <span style="background:#f97316"></span>
+                <span style="background:#f43f5e"></span>
+                <span style="background:#8b5cf6"></span>
+              </div>
+            </div>
+          </div>
+          <div class="showcase-card">
+            <h3><span class="icon">🎯</span> Pixel Eyedropper</h3>
+            <p>Live magnifier zooms into the exact pixel. Click once to copy HEX to clipboard. History persists across sessions.</p>
+            <div class="showcase-visual">
+              <span class="showcase-chip">#3B82F6</span>
+              <span class="showcase-chip">rgb(59, 130, 246)</span>
+              <span class="showcase-chip">Copied!</span>
+            </div>
+          </div>
+          <div class="showcase-card">
+            <h3><span class="icon">📸</span> Screenshot Modes</h3>
+            <p>Three capture modes: visible viewport, full-page auto-scroll stitching, and custom region with blur overlay selector.</p>
+            <div class="showcase-visual">
+              <span class="showcase-chip">Visible</span>
+              <span class="showcase-chip">Full Page</span>
+              <span class="showcase-chip">Custom Region</span>
+              <span class="showcase-chip">PNG / JPG / WebP</span>
+            </div>
+          </div>
+          <div class="showcase-card">
+            <h3><span class="icon">🧩</span> CSS Inspector</h3>
+            <p>Real-time hover highlights with computed style preview. Lock an element with click, then copy the full CSS block.</p>
+            <div class="showcase-visual">
+              <span class="showcase-chip">display: flex</span>
+              <span class="showcase-chip">gap: 16px</span>
+              <span class="showcase-chip">border-radius: 8px</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="section steps-section" id="workflow">
+      <div class="section-inner">
+        <div class="section-header">
+          <div class="section-label">How it works</div>
+          <h2>From page to export in four steps.</h2>
+          <p>No setup, no accounts, no cloud. Everything runs locally in your browser.</p>
+        </div>
+        <div class="steps-grid">
+          <article class="step-card">
+            <div class="step-num">1</div>
+            <h3>Visit any page</h3>
+            <p>Navigate to the website you want to study. Click the extension icon in your toolbar.</p>
           </article>
-          <article class="step">
-            <span class="step-num">2</span>
-            <h3>Extract tokens</h3>
-            <p>Review swatches, type styles, spacing, effects, and detected platform signals in the popup.</p>
+          <article class="step-card">
+            <div class="step-num">2</div>
+            <h3>Scan design tokens</h3>
+            <p>Instantly see colors, fonts, spacing, shadows, and tech stack detected on the page.</p>
           </article>
-          <article class="step">
-            <span class="step-num">3</span>
-            <h3>Inspect details</h3>
-            <p>Use the eyedropper, element inspector, and screenshot modes for exact page-level evidence.</p>
+          <article class="step-card">
+            <div class="step-num">3</div>
+            <h3>Inspect & capture</h3>
+            <p>Use the eyedropper, element inspector, and screenshot tools for precise evidence.</p>
           </article>
-          <article class="step">
-            <span class="step-num">4</span>
-            <h3>Export assets</h3>
-            <p>Download Markdown documentation, screenshots, individual images, or a full image ZIP archive.</p>
+          <article class="step-card">
+            <div class="step-num">4</div>
+            <h3>Export everything</h3>
+            <p>Download Markdown docs, screenshots, image ZIPs, or copy CSS directly to clipboard.</p>
           </article>
         </div>
       </div>
     </section>
 
-    <section class="section install" id="install">
+    <!-- INSTALL -->
+    <section class="section install-section" id="install">
       <div class="section-inner install-panel">
         <div class="install-copy">
-          <h2>Install as an unpacked extension.</h2>
-          <p>This repository is already structured as a Chrome Manifest V3 extension. Load the folder directly during development.</p>
-          <a class="button" href="chrome://extensions">Open Chrome extensions</a>
+          <div class="section-label">Installation</div>
+          <h2>Ready in 30 seconds.</h2>
+          <p>Load the extension as an unpacked Chrome extension. No build step, no dependencies, no account required.</p>
+          <a class="button" href="chrome://extensions">Open chrome://extensions</a>
         </div>
         <ol class="install-list">
-          <li><b>1</b><span>Open <code>chrome://extensions</code> in Chrome.</span></li>
-          <li><b>2</b><span>Enable Developer mode in the top-right corner.</span></li>
-          <li><b>3</b><span>Choose Load unpacked and select this project folder.</span></li>
-          <li><b>4</b><span>Pin the extension and run it on the page you want to inspect.</span></li>
+          <li><b>1</b><span>Open <code style="background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:13px;">chrome://extensions</code> in your browser.</span></li>
+          <li><b>2</b><span>Enable <strong>Developer mode</strong> in the top-right corner.</span></li>
+          <li><b>3</b><span>Click <strong>Load unpacked</strong> and select this project folder.</span></li>
+          <li><b>4</b><span>Pin the extension and click it on any page you want to scan.</span></li>
         </ol>
       </div>
     </section>
 
-    <section class="section">
+    <!-- CODE SAMPLE -->
+    <section class="section code-section">
       <div class="section-inner">
+        <div class="section-header">
+          <div class="section-label">Export sample</div>
+          <h2>Clean, structured output.</h2>
+          <p>Export your findings as Markdown documentation you can share with your team or drop into Notion.</p>
+        </div>
         <div class="code-window">
-          <div class="code-title">Export sample</div>
-          <pre><code># Design System
+          <div class="code-title">design-system.md</div>
+          <pre><code><span class="code-comment"># Design System Analysis</span>
 
-## Colors
-- #2e6af0 - accent
-- #111827 - text
-- #f8fafc - background
+<span class="code-comment">## Color Palette</span>
+| Role     | Color      |
+|----------|------------|
+| accent   | <span class="code-string">#3B82F6</span>    |
+| text     | <span class="code-string">#0F172A</span>    |
+| surface  | <span class="code-string">#F8FAFC</span>    |
 
-## Typography
-- H1: 64px / 700 / Inter
-- Body: 16px / 400 / system-ui
+<span class="code-comment">## Typography</span>
+| Tag | Size   | Weight | Family |
+|-----|--------|--------|--------|
+| H1  | <span class="code-number">64px</span>   | <span class="code-number">700</span>    | Inter  |
+| Body| <span class="code-number">16px</span>   | <span class="code-number">400</span>    | system |
 
-## Assets
-- images.zip
-- screenshot.png</code></pre>
+<span class="code-comment">## Assets Exported</span>
+- <span class="code-string">images.zip</span> (<span class="code-number">24</span> images)
+- <span class="code-string">screenshot.png</span> (<span class="code-number">1920</span>×<span class="code-number">1080</span>)</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="section cta-section">
+      <div class="section-inner">
+        <h2>Start scanning any website today.</h2>
+        <p>Install the extension, open any page, and discover the design system behind it in seconds.</p>
+        <div class="cta-buttons">
+          <a class="button" href="#install">Install Free</a>
+          <a class="button download" href="https://drive.google.com/uc?export=download&id=YOUR_FILE_ID" target="_blank" rel="noopener">Download</a>
+          <a class="button secondary" href="https://github.com/mdRazunMia/SiteDNA">View on GitHub</a>
         </div>
       </div>
     </section>
@@ -943,9 +1057,45 @@
 
   <footer class="footer">
     <div class="footer-inner">
-      <strong>Design System & Image Extractor</strong>
+      <div class="footer-brand">
+        <img src="icon128.png" alt="Design Scanner">
+        <span>Design Scanner</span>
+      </div>
+      <div class="footer-links">
+        <a href="#features">Features</a>
+        <a href="#showcase">Showcase</a>
+        <a href="#install">Install</a>
+        <a href="https://github.com/mdRazunMia/SiteDNA">GitHub</a>
+      </div>
       <span>Manifest V3 extension for design audits, screenshots, and asset extraction.</span>
     </div>
   </footer>
+
+  <script>
+    // Simple scroll animation
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.feature, .showcase-card, .step-card, .section-header').forEach(el => {
+      el.classList.add('fade-in');
+      observer.observe(el);
+    });
+
+    // Smooth scroll for nav links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+  </script>
 </body>
 </html>
