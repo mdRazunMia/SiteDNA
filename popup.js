@@ -375,35 +375,69 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             var zip = new JSZip();
-            var folder = zip.folder('images');
             var completed = 0;
+            var failed = 0;
+
+            function sanitizeExt(ext) {
+              if (!ext || ext.length > 10 || ext.indexOf('/') !== -1 || ext.indexOf(':') !== -1) {
+                return 'bin';
+              }
+              ext = ext.replace(/[^a-z0-9]/g, '');
+              return ext || 'bin';
+            }
 
             function processNext(i) {
               if (i >= images.length) {
-                zip.generateAsync({ type: 'blob' }).then(function(content) {
-                  var url = URL.createObjectURL(content);
-                  var a = document.createElement('a');
-                  a.href = url;
-                  a.download = 'images.zip';
-                  document.body.appendChild(a);
-                  a.click();
-                  document.body.removeChild(a);
-                  URL.revokeObjectURL(url);
-                  showStatus('Downloaded ' + completed + ' images as ZIP!', 'success');
-                });
+                console.log('[ZIP] Finished adding files. Success:', completed, 'Failed:', failed);
+                if (completed === 0) {
+                  showStatus('No images could be fetched. This may be a CORS issue.', 'error');
+                  return;
+                }
+                zip.generateAsync({ type: 'blob', mimeType: 'application/zip', compression: 'STORE' })
+                  .then(function(content) {
+                    console.log('[ZIP] Generated blob size:', content.size);
+                    if (typeof saveAs !== 'undefined') {
+                      try {
+                        saveAs(content, 'images.zip');
+                        showStatus('Downloaded ' + completed + ' images as ZIP!', 'success');
+                      } catch (err) {
+                        console.error('[ZIP] saveAs failed:', err);
+                        fallbackDownload(content);
+                      }
+                    } else {
+                      fallbackDownload(content);
+                    }
+                  })
+                  .catch(function(err) {
+                    console.error('[ZIP] Generation failed:', err);
+                    showStatus('ZIP generation failed: ' + err.message, 'error');
+                  });
                 return;
               }
               fetchImageAsBlob(images[i].src, format).then(function(blob) {
-                var ext = format === 'original' ? images[i].ext : format;
+                var ext = format === 'original' ? sanitizeExt(images[i].ext) : sanitizeExt(format);
                 if (ext === 'jpeg') ext = 'jpg';
-                folder.file('image_' + String(i + 1).padStart(3, '0') + '.' + ext, blob);
+                zip.file('image_' + String(i + 1).padStart(3, '0') + '.' + ext, blob);
                 completed++;
                 showStatus('Zipping ' + completed + '/' + images.length + '...', 'info');
                 processNext(i + 1);
               }).catch(function(err) {
-                console.error('Failed:', images[i].src, err);
+                failed++;
+                console.error('Failed image ' + (i + 1) + ':', images[i].src, err);
                 processNext(i + 1);
               });
+            }
+
+            function fallbackDownload(blob) {
+              var url = URL.createObjectURL(blob);
+              var a = document.createElement('a');
+              a.href = url;
+              a.download = 'images.zip';
+              document.body.appendChild(a);
+              a.click();
+              document.body.removeChild(a);
+              setTimeout(function() { URL.revokeObjectURL(url); }, 30000);
+              showStatus('Downloaded ' + completed + ' images as ZIP!', 'success');
             }
 
             processNext(0);
