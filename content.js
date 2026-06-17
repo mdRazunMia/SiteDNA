@@ -529,6 +529,28 @@ async function onRegionMouseUp(e) {
 
 function showRegionResult(dataUrl, w, h, format) {
   const ext = format || 'png';
+
+  // Pre-load image and create PNG blob for clipboard so the click handler
+  // can call navigator.clipboard.write synchronously and preserve the user gesture.
+  var clipboardBlob = null;
+  var clipboardReady = false;
+  var preloadImg = new Image();
+  preloadImg.onload = function() {
+    var canvas = document.createElement('canvas');
+    canvas.width = preloadImg.naturalWidth;
+    canvas.height = preloadImg.naturalHeight;
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(preloadImg, 0, 0);
+    canvas.toBlob(function(blob) {
+      clipboardBlob = blob;
+      clipboardReady = true;
+    }, 'image/png');
+  };
+  preloadImg.onerror = function() {
+    clipboardReady = true;
+  };
+  preloadImg.src = dataUrl;
+
   const toolbar = document.createElement('div');
   toolbar.id = 'dsa-region-result';
   toolbar.style.cssText = [
@@ -571,33 +593,28 @@ function showRegionResult(dataUrl, w, h, format) {
   btnCopy.textContent = 'Copy';
   btnCopy.type = 'button';
   btnCopy.style.cssText = 'padding:7px 16px;background:#334155;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;';
-  btnCopy.addEventListener('click', async function(e) {
+  btnCopy.addEventListener('click', function(e) {
     e.stopPropagation();
-    try {
-      // Convert to PNG blob for maximum clipboard compatibility
-      const img = new Image();
-      img.src = dataUrl;
-      await new Promise(function(resolve, reject) {
-        img.onload = resolve;
-        img.onerror = reject;
-      });
-      var canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      var ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      var blob = await new Promise(function(resolve) {
-        canvas.toBlob(resolve, 'image/png');
-      });
-      if (!blob) throw new Error('Canvas toBlob failed');
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-      btnCopy.textContent = 'Copied!';
-      setTimeout(function() { btnCopy.textContent = 'Copy'; }, 1500);
-    } catch (err) {
-      console.error('Region copy failed:', err);
+    if (!clipboardReady || !clipboardBlob) {
       btnCopy.textContent = 'Failed';
       setTimeout(function() { btnCopy.textContent = 'Copy'; }, 1500);
+      return;
     }
+    if (typeof ClipboardItem === 'undefined') {
+      btnCopy.textContent = 'Failed';
+      setTimeout(function() { btnCopy.textContent = 'Copy'; }, 1500);
+      return;
+    }
+    navigator.clipboard.write([new ClipboardItem({ 'image/png': clipboardBlob })])
+      .then(function() {
+        btnCopy.textContent = 'Copied!';
+        setTimeout(function() { btnCopy.textContent = 'Copy'; }, 1500);
+      })
+      .catch(function(err) {
+        console.error('Region copy failed:', err);
+        btnCopy.textContent = 'Failed';
+        setTimeout(function() { btnCopy.textContent = 'Copy'; }, 1500);
+      });
   });
 
   const btnClose = document.createElement('button');
