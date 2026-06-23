@@ -303,6 +303,9 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
           }
           updatePickerUI(!pickerActive, null);
+          if (action === 'enableColorPicker') {
+            window.close();
+          }
         });
       });
     });
