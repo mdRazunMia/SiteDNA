@@ -528,117 +528,24 @@ async function onRegionMouseUp(e) {
 }
 
 function showRegionResult(dataUrl, w, h, format) {
-  const ext = format || 'png';
-
-  // Pre-load image and create PNG blob for clipboard so the click handler
-  // can call navigator.clipboard.write synchronously and preserve the user gesture.
-  var clipboardBlob = null;
-  var clipboardReady = false;
-  var preloadImg = new Image();
-  preloadImg.onload = function() {
-    var canvas = document.createElement('canvas');
-    canvas.width = preloadImg.naturalWidth;
-    canvas.height = preloadImg.naturalHeight;
-    var ctx = canvas.getContext('2d');
-    ctx.drawImage(preloadImg, 0, 0);
-    canvas.toBlob(function(blob) {
-      clipboardBlob = blob;
-      clipboardReady = true;
-    }, 'image/png');
-  };
-  preloadImg.onerror = function() {
-    clipboardReady = true;
-  };
-  preloadImg.src = dataUrl;
-
-  const toolbar = document.createElement('div');
-  toolbar.id = 'dsa-region-result';
-  toolbar.style.cssText = [
-    'position:fixed',
-    'bottom:24px',
-    'left:50%',
-    'transform:translateX(-50%)',
-    'z-index:2147483647',
-    'display:flex',
-    'align-items:center',
-    'gap:12px',
-    'background:#0f172a',
-    'color:#f8fafc',
-    'padding:12px 20px',
-    'border-radius:12px',
-    'font-family:system-ui,sans-serif',
-    'font-size:14px',
-    'box-shadow:0 8px 32px rgba(0,0,0,0.3)',
-    'animation:dsaFadeIn 0.25s ease-out'
-  ].join(';');
-
-  const sizeLabel = document.createElement('span');
-  sizeLabel.textContent = w + ' \u00d7 ' + h + ' px';
-  sizeLabel.style.cssText = 'font-weight:600;color:#94a3b8;margin-right:4px;';
-
-  const btnDl = document.createElement('button');
-  btnDl.textContent = 'Download';
-  btnDl.style.cssText = 'padding:7px 16px;background:#6366f1;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;';
-  btnDl.addEventListener('click', function(e) {
-    e.stopPropagation();
-    const a = document.createElement('a');
-    a.href = dataUrl;
-    a.download = 'region-' + w + 'x' + h + '.' + ext;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-  });
-
-  const btnCopy = document.createElement('button');
-  btnCopy.textContent = 'Copy';
-  btnCopy.type = 'button';
-  btnCopy.style.cssText = 'padding:7px 16px;background:#334155;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;';
-  btnCopy.addEventListener('click', function(e) {
-    e.stopPropagation();
-    if (!clipboardReady || !clipboardBlob) {
-      btnCopy.textContent = 'Failed';
-      setTimeout(function() { btnCopy.textContent = 'Copy'; }, 1500);
+  chrome.runtime.sendMessage({ action: 'openEditor' }, function(response) {
+    if (!response || !response.id) {
+      showRegionToast('Could not open editor.', 'error');
       return;
     }
-    if (typeof ClipboardItem === 'undefined') {
-      btnCopy.textContent = 'Failed';
-      setTimeout(function() { btnCopy.textContent = 'Copy'; }, 1500);
-      return;
-    }
-    navigator.clipboard.write([new ClipboardItem({ 'image/png': clipboardBlob })])
-      .then(function() {
-        btnCopy.textContent = 'Copied!';
-        setTimeout(function() { btnCopy.textContent = 'Copy'; }, 1500);
-      })
-      .catch(function(err) {
-        console.error('Region copy failed:', err);
-        btnCopy.textContent = 'Failed';
-        setTimeout(function() { btnCopy.textContent = 'Copy'; }, 1500);
-      });
+    chrome.runtime.sendMessage({
+      action: 'loadScreenshot',
+      targetId: response.id,
+      dataUrl: dataUrl,
+      format: format || 'png'
+    }, function() {
+      if (chrome.runtime.lastError) {
+        showRegionToast('Could not send screenshot to editor.', 'error');
+      } else {
+        showRegionToast('Screenshot opened in editor.', 'success');
+      }
+    });
   });
-
-  const btnClose = document.createElement('button');
-  btnClose.innerHTML = '\u2715';
-  btnClose.style.cssText = 'padding:4px 8px;background:transparent;color:#64748b;border:none;border-radius:4px;font-size:16px;cursor:pointer;margin-left:4px;';
-  btnClose.addEventListener('click', function() {
-    toolbar.remove();
-    const style = document.getElementById('dsa-region-style');
-    if (style) style.remove();
-  });
-
-  toolbar.appendChild(sizeLabel);
-  toolbar.appendChild(btnDl);
-  toolbar.appendChild(btnCopy);
-  toolbar.appendChild(btnClose);
-  document.body.appendChild(toolbar);
-
-  // Inject keyframe animation
-  if (!document.getElementById('dsa-region-style')) {
-    const style = document.createElement('style');
-    style.id = 'dsa-region-style';
-    style.textContent = '@keyframes dsaFadeIn { from { opacity:0; transform:translateX(-50%) translateY(16px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }';
-    document.head.appendChild(style);
-  }
 }
 
 function showRegionToast(msg, type) {

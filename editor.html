@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Screenshot Editor</title>
+  <link rel="stylesheet" href="editor.css">
+</head>
+<body>
+  <div class="editor-app">
+    <header class="editor-header">
+      <h1>Screenshot Editor</h1>
+      <span id="editorSize" class="editor-size"></span>
+    </header>
+
+    <div class="editor-body">
+      <div class="canvas-area">
+        <div id="canvasWrap" class="canvas-wrap">
+          <canvas id="editorCanvas"></canvas>
+        </div>
+      </div>
+
+      <aside class="sidebar">
+        <div class="panel">
+          <h2>Tools</h2>
+          <div class="tool-grid">
+            <button class="tool-btn active" data-tool="none" title="Move / None">None</button>
+            <button class="tool-btn" data-tool="text" title="Text">Text</button>
+            <button class="tool-btn" data-tool="arrow" title="Arrow">Arrow</button>
+            <button class="tool-btn" data-tool="rect" title="Rectangle">Rect</button>
+            <button class="tool-btn" data-tool="ellipse" title="Ellipse">Oval</button>
+            <button class="tool-btn" data-tool="highlight" title="Highlight">HL</button>
+            <button class="tool-btn" data-tool="pen" title="Pen">Pen</button>
+            <button class="tool-btn" data-tool="blur" title="Blur">Blur</button>
+          </div>
+
+          <div class="control-row">
+            <label>Color</label>
+            <input type="color" id="annotationColor" value="#ef4444">
+          </div>
+
+          <div class="control-row">
+            <label>Size</label>
+            <input type="range" id="annotationSize" min="2" max="40" value="4">
+          </div>
+
+          <div class="control-row">
+            <button class="btn-secondary" id="annotationUndo">Undo</button>
+            <button class="btn-secondary" id="annotationClear">Clear</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Actions</h2>
+          <div class="control-row">
+            <label>Format</label>
+            <select id="editorFormat">
+              <option value="png">PNG</option>
+              <option value="jpg">JPG</option>
+              <option value="webp">WebP</option>
+              <option value="svg">SVG</option>
+            </select>
+          </div>
+          <button class="btn-primary" id="downloadScreenshot">Download</button>
+          <button class="btn-primary" id="copyScreenshot">Copy</button>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script src="editor.js"></script>
+</body>
+</html>

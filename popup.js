@@ -451,10 +451,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // ===== SCREENSHOT =====
 
   var captureBtn = document.getElementById('captureScreenshot');
-  var screenshotPreview = document.getElementById('screenshotPreview');
-  var screenshotImage = document.getElementById('screenshotImage');
-  var downloadScreenshotBtn = document.getElementById('downloadScreenshot');
-  var copyScreenshotBtn = document.getElementById('copyScreenshot');
   var screenshotFormat = document.getElementById('screenshotFormat');
   var screenshotProgress = document.getElementById('screenshotProgress');
   var progressFill = document.getElementById('progressFill');
@@ -499,7 +495,6 @@ document.addEventListener('DOMContentLoaded', function() {
       isCapturing = true;
       captureBtn.disabled = true;
       captureBtn.textContent = 'Capturing...';
-      if (screenshotPreview) screenshotPreview.style.display = 'none';
 
       if (mode === 'visible') {
         captureVisibleScreenshot();
@@ -525,11 +520,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (fmt !== 'png') {
           convertDataUrl(dataUrl, fmt, function(converted) {
-            displayScreenshot(converted);
+            openScreenshotEditor(converted, fmt);
             resetCaptureBtn();
           });
         } else {
-          displayScreenshot(dataUrl);
+          openScreenshotEditor(dataUrl, fmt);
           resetCaptureBtn();
         }
       });
@@ -654,25 +649,36 @@ document.addEventListener('DOMContentLoaded', function() {
       if (fmt && fmt !== 'png') {
         convertDataUrl(dataUrl, fmt, function(converted) {
           showScreenshotProgress(false);
-          displayScreenshot(converted);
+          openScreenshotEditor(converted, fmt);
           resetCaptureBtn();
         });
       } else {
         showScreenshotProgress(false);
-        displayScreenshot(dataUrl);
+        openScreenshotEditor(dataUrl, fmt);
         resetCaptureBtn();
       }
     });
   }
 
-  var currentScreenshotDataUrl = null;
-
-  function displayScreenshot(dataUrl) {
-    currentScreenshotDataUrl = dataUrl;
-    if (screenshotImage) screenshotImage.src = dataUrl;
-    if (screenshotPreview) screenshotPreview.style.display = 'block';
-    screenshotPreview.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    showStatus('Screenshot captured!', 'success');
+  function openScreenshotEditor(dataUrl, format) {
+    chrome.runtime.sendMessage({ action: 'openEditor' }, function(response) {
+      if (!response || !response.id) {
+        showStatus('Could not open editor.', 'error');
+        return;
+      }
+      chrome.runtime.sendMessage({
+        action: 'loadScreenshot',
+        targetId: response.id,
+        dataUrl: dataUrl,
+        format: format
+      }, function() {
+        if (chrome.runtime.lastError) {
+          showStatus('Could not send screenshot to editor.', 'error');
+        } else {
+          showStatus('Screenshot opened in editor.', 'success');
+        }
+      });
+    });
   }
 
   function resetCaptureBtn() {
@@ -682,17 +688,6 @@ document.addEventListener('DOMContentLoaded', function() {
       captureBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>\n          Capture Screenshot';
     }
     showScreenshotProgress(false);
-  }
-
-  if (downloadScreenshotBtn) {
-    downloadScreenshotBtn.addEventListener('click', function() {
-      if (!currentScreenshotDataUrl) {
-        showStatus('No screenshot to download.', 'error');
-        return;
-      }
-      var format = screenshotFormat ? screenshotFormat.value : 'png';
-      downloadDataUrl(currentScreenshotDataUrl, 'screenshot.' + format, format);
-    });
   }
 
   function convertToSvg(dataUrl, callback) {
@@ -735,84 +730,6 @@ document.addEventListener('DOMContentLoaded', function() {
       }, mimeType, format === 'jpg' ? 0.9 : undefined);
     };
     img.src = dataUrl;
-  }
-
-  function downloadDataUrl(dataUrl, filename, format) {
-    if (format === 'png' || format === 'svg') {
-      var a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      showStatus('Downloaded ' + filename + '!', 'success');
-      return;
-    }
-
-    var mimeType = format === 'jpg' ? 'image/jpeg' : 'image/webp';
-    var img = new Image();
-    img.onload = function() {
-      var canvas = document.createElement('canvas');
-      canvas.width = img.naturalWidth;
-      canvas.height = img.naturalHeight;
-      var ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      canvas.toBlob(function(blob) {
-        if (!blob) { showStatus('Failed to convert format.', 'error'); return; }
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        showStatus('Downloaded ' + filename + '!', 'success');
-      }, mimeType, 0.92);
-    };
-    img.onerror = function() { showStatus('Failed to process image.', 'error'); };
-    img.src = dataUrl;
-  }
-
-  if (copyScreenshotBtn) {
-    copyScreenshotBtn.addEventListener('click', function() {
-      if (!currentScreenshotDataUrl) {
-        showStatus('No screenshot to copy.', 'error');
-        return;
-      }
-      var format = screenshotFormat ? screenshotFormat.value : 'png';
-      if (format === 'svg') {
-        fetch(currentScreenshotDataUrl).then(function(resp) { return resp.text(); })
-          .then(function(text) {
-            navigator.clipboard.writeText(text).then(function() {
-              showStatus('Copied SVG to clipboard!', 'success');
-            }).catch(function() {
-              showStatus('Could not copy to clipboard.', 'error');
-            });
-          }).catch(function() {
-            showStatus('Failed to read SVG.', 'error');
-          });
-        return;
-      }
-      var mimeType = format === 'jpg' ? 'image/jpeg' : format === 'webp' ? 'image/webp' : 'image/png';
-
-      var img = new Image();
-      img.onload = function() {
-        var canvas = document.createElement('canvas');
-        canvas.width = img.naturalWidth;
-        canvas.height = img.naturalHeight;
-        var ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-        canvas.toBlob(function(blob) {
-          if (!blob) { showStatus('Failed to convert for clipboard.', 'error'); return; }
-          navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })])
-            .then(function() { showStatus('Copied to clipboard!', 'success'); })
-            .catch(function() { showStatus('Could not copy to clipboard.', 'error'); });
-        }, mimeType, 0.92);
-      };
-      img.onerror = function() { showStatus('Failed to process image.', 'error'); };
-      img.src = currentScreenshotDataUrl;
-    });
   }
 
   // ===== RENDERERS =====

@@ -1,4 +1,62 @@
+const editors = {};
+
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'openEditor') {
+    const id = generateId();
+    chrome.windows.create({
+      url: 'editor.html?id=' + encodeURIComponent(id),
+      type: 'popup',
+      width: 1280,
+      height: 800
+    }, function(win) {
+      editors[id] = { windowId: win.id, tabId: win.tabs[0].id, ready: false, pending: null };
+      sendResponse({ id: id });
+    });
+    return true;
+  }
+
+  if (request.action === 'editorReady') {
+    const ed = editors[request.id];
+    if (ed) {
+      ed.ready = true;
+      if (ed.pending) {
+        chrome.runtime.sendMessage({
+          action: 'loadScreenshot',
+          targetId: request.id,
+          dataUrl: ed.pending.dataUrl,
+          format: ed.pending.format
+        });
+        ed.pending = null;
+      }
+    }
+    sendResponse({ success: true });
+    return true;
+  }
+
+  if (request.action === 'loadScreenshot') {
+    const ed = editors[request.targetId];
+    if (!ed) {
+      sendResponse({ success: false });
+      return true;
+    }
+    if (ed.ready) {
+      chrome.runtime.sendMessage({
+        action: 'loadScreenshot',
+        targetId: request.targetId,
+        dataUrl: request.dataUrl,
+        format: request.format
+      });
+    } else {
+      ed.pending = { dataUrl: request.dataUrl, format: request.format };
+    }
+    sendResponse({ success: true });
+    return true;
+  }
+
   if (request.action === 'captureRegion') {
     const fmt = request.format || 'png';
     captureAndSendRegion(request.region, request.dims, sender.tab.id, fmt)
